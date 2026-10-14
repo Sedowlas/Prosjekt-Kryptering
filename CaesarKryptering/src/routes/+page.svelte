@@ -1,36 +1,52 @@
 <script lang="ts">
-  let inputText = $state("");
-  let keyInput = $state("");
-  let resultText = $state("");
-  let errorMessage = $state("");
+let cipherType = $state("");
+let inputText = $state("");
+let keyInput = $state("");
+let resultText = $state("");
+let errorMessage = $state("");
 
-  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-  // Validering av brukerens input i henhold til oppgavespesifikasjonene
-  function validateInput(): boolean {
+// Validering for Caesar-metoden (tall fra 0 til 25)
+  function validateCaesar() {
+    if (keyInput === "" || isNaN(Number(keyInput))) {
+      errorMessage = "Feil: Caesar-nøkkelen må være et tall.";
+      return false;
+    }
+
+    const key = Number(keyInput);
+    if (!Number.isInteger(key) || key < 0 || key > 25) {
+      errorMessage = "Feil: Caesar-nøkkelen må være et heltall fra 0 til 25.";
+      return false;
+    }
+    return true;
+  }
+
+  // Validering for Vigenère-metoden (kun bokstaver fra A til Z)
+  function validateVigenereKey() {
+    if (!keyInput.trim()) {
+      errorMessage = "Feil: Vigenère-nøkkelen kan ikke være tom.";
+      return false;
+    }
+
+    // Sjekk at nøkkelen kun inneholder engelske bokstaver (ingen tall, mellomrom eller spesialtegn)
+    const keyRegex = /^[a-zA-Z]+$/;
+    if (!keyRegex.test(keyInput)) {
+      errorMessage = "Feil: Vigenère-nøkkelen kan kun inneholde bokstaver (A-Z), ingen tall, mellomrom eller spesialtegn.";
+      return false;
+    }
+    return true;
+  }
+
+  // Felles inputvalidering for tekst
+  function validateCommon() {
     errorMessage = "";
 
-    // Sjekk om teksten er tom
     if (!inputText.trim()) {
       errorMessage = "Feil: Teksten kan ikke være tom.";
       return false;
     }
 
-    // Sjekk om nøkkelen mangler eller ikke er et tall
-    if (keyInput === "" || isNaN(Number(keyInput))) {
-      errorMessage = "Feil: Nøkkelen må være et tall.";
-      return false;
-    }
-
-    const key = Number(keyInput);
-
-    // Sjekk om nøkkelen er et heltall innenfor tillatt intervall (0-25)
-    if (!Number.isInteger(key) || key < 0 || key > 25) {
-      errorMessage = "Feil: Nøkkelen må være et heltall fra 0 til 25.";
-      return false;
-    }
-
-    // Sjekk for ulovlige tegn (kun engelske bokstaver og mellomrom er tillatt)
     const invalidCharRegex = /[^a-zA-Z\s]/;
     if (invalidCharRegex.test(inputText)) {
       errorMessage = "Feil: Teksten kan kun inneholde engelske bokstaver og mellomrom (ingen tall eller spesialtegn tillatt).";
@@ -40,35 +56,27 @@
     return true;
   }
 
-  // Hovedfunksjon for Caesar-kryptering og dekryptering
-  function caesarCipher(text: string, key: string | number, decrypt = false): string {
+  // Caesar-funksjon fra Del 1
+  function caesarCipher(text: string | any[], key: string, decrypt = false) {
     let result = "";
     const numKey = Number(key);
-    
-    // Ved dekryptering snur vi forskyvningen motsatt vei. 
-    // Vi legger til 26 for å unngå negative tall før modulo-operasjonen.
     const shift = decrypt ? (26 - (numKey % 26)) : (numKey % 26);
 
     for (let i = 0; i < text.length; i++) {
       let char = text[i];
 
-      // Mellomrom skal beholdes på samme sted og ikke krypteres
       if (char === " ") {
         result += " ";
         continue;
       }
 
-      // Bevarer opprinnelig skrivemåte (store eller små bokstaver)
       let isUpperCase = char === char.toUpperCase();
       let upperChar = char.toUpperCase();
       let index = alphabet.indexOf(upperChar);
 
       if (index !== -1) {
-        // Beregner ny posisjon i alfabetet ved hjelp av modulo 26 for sirkulær forskyvning
         let newIndex = (index + shift) % 26;
         let transformedChar = alphabet[newIndex];
-        
-        // Returnerer bokstaven i riktig register (store/små)
         result += isUpperCase ? transformedChar : transformedChar.toLowerCase();
       } else {
         result += char;
@@ -78,21 +86,88 @@
     return result;
   }
 
-  // Kjører kryptering hvis valideringen lykkes
-  function handleEncrypt() {
-    if (!validateInput()) return;
-    resultText = caesarCipher(inputText, keyInput, false);
+  // Vigenère-funksjon for kryptering og dekryptering
+  function vigenereCipher(text: string | any[], keyword: string, decrypt = false) {
+    let result = "";
+    const upperKeyword = keyword.toUpperCase();
+    let keyIndex = 0; // Holder styr på posisjonen i nøkkelen
+
+    for (let i = 0; i < text.length; i++) {
+      let char = text[i];
+
+      // Mellomrom beholdes, og vi teller IKKE opp nøkkelindeksen for mellomrom
+      if (char === " ") {
+        result += " ";
+        continue;
+      }
+
+      let isUpperCase = char === char.toUpperCase();
+      let upperChar = char.toUpperCase();
+      let charPos = alphabet.indexOf(upperChar);
+
+      if (charPos !== -1) {
+        // Henter den aktuelle bokstaven fra nøkkelen (repeteres ved hjelp av modulo)
+        let keyChar = upperKeyword[keyIndex % upperKeyword.length];
+        let shift = alphabet.indexOf(keyChar);
+
+        // Hvis dekryptering, snur vi forskyvningen motsatt vei
+        let newIndex;
+        if (decrypt) {
+          newIndex = (charPos - shift + 26) % 26;
+        } else {
+          newIndex = (charPos + shift) % 26;
+        }
+
+        let transformedChar = alphabet[newIndex];
+        result += isUpperCase ? transformedChar : transformedChar.toLowerCase();
+
+        // Gå til neste bokstav i nøkkelen ettersom vi har behandlet en gyldig bokstav
+        keyIndex++;
+      } else {
+        result += char;
+      }
+    }
+
+    return result;
   }
 
-  // Kjører dekryptering uavhengig av om teksten ble kryptert først
+  // Hovedfunksjoner for knapper
+  function handleEncrypt() {
+    if (!validateCommon()) return;
+
+    if (cipherType === "caesar") {
+      if (!validateCaesar()) return;
+      resultText = caesarCipher(inputText, keyInput, false);
+    } else {
+      if (!validateVigenereKey()) return;
+      resultText = vigenereCipher(inputText, keyInput, false);
+    }
+  }
+
   function handleDecrypt() {
-    if (!validateInput()) return;
-    resultText = caesarCipher(inputText, keyInput, true);
+    if (!validateCommon()) return;
+
+    if (cipherType === "caesar") {
+      if (!validateCaesar()) return;
+      resultText = caesarCipher(inputText, keyInput, true);
+    } else {
+      if (!validateVigenereKey()) return;
+      resultText = vigenereCipher(inputText, keyInput, true);
+    }
   }
 </script>
 
 <main class="container">
-  <h1>Kryptografiverktøy - Del 1: Caesar</h1>
+  <h1>Kryptografiverktøy - Del 1 & Del 2</h1>
+
+  <!-- Valg av kryptografimetode -->
+  <div class="form-group">
+    <label for="cipherType">Velg metode:</label>
+    <select id="cipherType" bind:value={cipherType}>
+      <option value="caesar">Caesar-kryptering</option>
+      <option value="vigenere">Vigenère-kryptering</option>
+    </select>
+  </div>
 
   <div class="form-group">
     <label for="inputText">Tekst:</label>
@@ -105,20 +180,26 @@
   </div>
 
   <div class="form-group">
-    <label for="keyInput">Nøkkel (0 - 25):</label>
+    <label for="keyInput">
+      {#if cipherType === 'caesar'}
+        Nøkkel (tall fra 0 til 25):
+      {:else}
+        Nøkkel (ord/bokstaver A-Z):
+      {/if}
+    </label>
     <input 
-      type="number" 
+      type={cipherType === 'caesar' ? 'number' : 'text'} 
       id="keyInput" 
       bind:value={keyInput} 
-      min="0" 
-      max="25" 
-      placeholder="F.eks. 3"
+      placeholder={cipherType === 'caesar' ? 'F.eks. 3' : 'F.eks. KEY'}
     />
   </div>
 
   <div class="button-group">
-    <button onclick={handleEncrypt}>Krypter</button>
-    <button onclick={handleDecrypt}>Dekrypter</button>
+    <!-- svelte-ignore event_directive_deprecated -->
+    <button on:click={handleEncrypt}>Krypter</button>
+    <!-- svelte-ignore event_directive_deprecated -->
+    <button on:click={handleDecrypt}>Dekrypter</button>
   </div>
 
   {#if errorMessage}
@@ -164,15 +245,16 @@
     color: #444;
   }
 
-  textarea, input {
+  textarea, input, select {
     padding: 0.75rem;
     font-size: 1rem;
     border: 1px solid #ccc;
     border-radius: 4px;
     outline: none;
+    background: #fff;
   }
 
-  textarea:focus, input:focus {
+  textarea:focus, input:focus, select:focus {
     border-color: #0066cc;
   }
 

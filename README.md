@@ -1,15 +1,12 @@
-# Kryptografiverktøy i Svelte – Del 1 (Caesar)
+# Kryptografiverktøy i Svelte – Del 1 og Del 2
 
-Dette prosjektet er et nettbasert kryptografiverktøy bygget med Svelte som en del av oppgaven i driftsstøtte og programmering.
+Dette prosjektet er et nettbasert kryptografiverktøy bygget med Svelte.
 
-## Beskrivelse
-Verktøyet lar brukeren utføre Caesar-kryptering og dekryptering av tekst basert på en numerisk nøkkel fra 0 til 25. Applikasjonen inneholder streng validering som sikrer at kun tillatte tegn (engelske bokstaver og mellomrom) behandles, og gir tydelige feilmeldinger ved feilaktig input.
+## Beskrivelse av implementert funksjonalitet
 
-## Implementert funksjonalitet
-- **Caesar-kryptering** (Del 1 er fullført)
-- **Caesar-dekryptering** (fungerer uavhengig av kryptering)
-- Bevaring av store og små bokstaver, samt mellomrom
-- Inputvalidering (blokkerer tall, spesialtegn, tomme felt og ugyldige nøkler)
+- **Del 1 (Caesar):** Kryptering og dekryptering ved hjelp av Caesar-chifferet med tallnøkkel (0-25).
+- **Del 2 (Vigenère):** Kryptering og dekryptering ved hjelp av Vigenère-chifferet basert på en tekstnøkkel (A-Z). Nøkkelen gjentas automatisk ved behov, og mellomrom behandles korrekt uten å forbruke nøkkelbokstaver.
+- **Validering:** Streng kontroll av både tekst og nøkkel for begge metoder, med tydelige feilmeldinger ved ulovlige tegn (som tall eller spesialtegn).
 
 ## Slik starter du prosjektet
 1. Åpne mappen i terminalen.
